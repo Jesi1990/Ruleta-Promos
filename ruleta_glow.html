@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Ruleta GLOW</title>
+<style>
+body {
+  font-family: "Comic Sans MS";
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 100vh;
+  background: linear-gradient(135deg,#fb6d,#e29bff);
+  margin: 0;
+  padding: 20px;
+}
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+canvas {
+  border-radius: 50%;
+  box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+  margin-top: 20px;
+}
+button {
+  margin-top: 20px;
+  padding: 10px 25px;
+  font-size: 16px;
+  background: #ff69b4;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+button:hover {
+  background: #e0599d;
+}
+button:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+}
+.message {
+  margin-top: 15px;
+  font-size: 18px;
+  color: #8a2be2;
+  text-align: center;
+}
+.logo {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- Logo GLOW (reemplazable por tu imagen) -->
+  <img src="LOGO_GLOW.jpeg" alt="GLOW" class="logo">
+
+  <h1>Jugá con GLOW</h1>
+  <canvas id="ruleta" width="500" height="500"></canvas>
+  <button id="spin">¡Girar Ruleta!</button>
+  <div class="message" id="result">Retirá hoy mismo tu premio 🎉</div>
+</div>
+
+<script>
+const canvas = document.getElementById("ruleta");
+const ctx = canvas.getContext("2d");
+const spinButton = document.getElementById("spin");
+const resultDiv = document.getElementById("result");
+
+const segments = [
+  {label: "10% descuento 😎"},
+  {label: "Regalo Misterio 🎁"},
+  {label: "Casi casi 😅"},
+  {label: "Otro tiro 😁"},
+  {label: "5% descuento 👏"},
+  {label: "1 Sorpresa 😉"},
+];
+
+const colors = ["#ffb6d9","#e29bff","#ff8fc3","#d19bff","#ffb6d9","#e29bff","#ff8fc3"];
+const arc = Math.PI * 2 / segments.length;
+let startAngle = 0;
+let spinning = false;
+let winningIndex = null;
+
+// Contador de giros por premio
+let giroContador = {};
+segments.forEach(seg => { giroContador[seg.label] = 0; });
+
+function drawWheel(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  for(let i=0;i<segments.length;i++){
+    ctx.beginPath();
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.moveTo(250,250);
+    ctx.arc(250,250,240,startAngle + i*arc, startAngle + (i+1)*arc);
+    ctx.lineTo(250,250);
+    ctx.fill();
+
+    // Resaltar segmento ganador
+    if(winningIndex === i){
+      ctx.strokeStyle = "#ffff00";
+      ctx.lineWidth = 6;
+      ctx.shadowColor = "#ffff00";
+      ctx.shadowBlur = 20;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    // Texto centrado
+    const midAngle = startAngle + i*arc + arc/2;
+    const textRadius = 240 / 2;
+    const x = 250 + Math.cos(midAngle) * textRadius;
+    const y = 250 + Math.sin(midAngle) * textRadius;
+
+    ctx.fillStyle = "#222";
+    ctx.font = "bold 16px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(segments[i].label, x, y);
+  }
+}
+
+drawWheel();
+
+spinButton.addEventListener("click", ()=>{
+  if(spinning) return;
+
+  spinning = true;
+  winningIndex = null;
+  let spins = Math.floor(Math.random()*3)+4; 
+  let degrees = Math.random()*360;
+  let totalRotation = spins*360 + degrees;
+  let currentRotation = 0;
+
+  const spinInterval = setInterval(()=>{
+    currentRotation += 10;
+    startAngle += 10 * Math.PI/180;
+    drawWheel();
+    if(currentRotation >= totalRotation){
+      clearInterval(spinInterval);
+      spinning = false;
+
+      // Premio correcto
+      let normalizedAngle = startAngle % (2*Math.PI);
+      winningIndex = Math.floor(((2*Math.PI - normalizedAngle)/(2*Math.PI))*segments.length) % segments.length;
+      drawWheel(); // resalta segmento ganador
+      let prize = segments[winningIndex].label;
+
+      // Contador de giros
+      giroContador[prize]++;
+      if((prize.includes("Otro tiro") || prize.includes("Reintentar")) && giroContador[prize] < 2){
+        resultDiv.textContent = "¡Ganaste: " + prize + "! 🎯 Tenés otra oportunidad.";
+      } else {
+        resultDiv.textContent = "¡Ganaste: " + prize + "!";
+        spinButton.disabled = true;
+      }
+    }
+  },20);
+});
+</script>
+</body>
+</html>
